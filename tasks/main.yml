@@ -1,0 +1,16 @@
+---
+- name: Set hostname
+  ansible.builtin.include_tasks: set_hostname.yml
+
+- name: Remove previous instance if it exists
+  ansible.builtin.include_tasks:
+    file: remove_previous_instance.yml
+    apply:
+      delegate_to: '{{ domain_pdc }}'
+      vars:
+        ansible_user: '{{ domain_admin_user }}'
+        ansible_become_user: '{{ domain_admin_user }}'
+        ansible_password: '{{ domain_admin_password }}'
+
+- name: Promote server to DC
+  ansible.builtin.include_tasks: promote_dc.yml

@@ -1,0 +1,9 @@
+---
+- name: Set hostname
+  ansible.windows.win_hostname:
+    name: '{{ dc_name }}'
+  register: res
+
+- name: Reboot
+  ansible.windows.win_reboot:
+  when: res.reboot_required

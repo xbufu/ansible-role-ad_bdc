@@ -1,0 +1,34 @@
+---
+- name: Check if previous instance of DC exists
+  community.windows.win_domain_computer:
+    name: '{{ dc_name }}'
+    state: absent
+  check_mode: true
+  register: prev
+
+- name: Remove previous instance of DC
+  when: prev.changed and not ansible_facts['windows_domain_member']
+  block:
+    - name: Remove computer account from AD
+      community.windows.win_domain_computer:
+        name: '{{ dc_name }}'
+        state: absent
+
+    - name: Get domain DN
+      ansible.windows.win_powershell:
+        script: |
+          (Get-ADDomain).DistinguishedName
+      register: dn
+
+    - name: Set domain_dn variable
+      ansible.builtin.set_fact:
+        domain_dn: '{{ dn.output[0] }}'
+
+    - name: Remove NTDS settings
+      microsoft.ad.object:
+        name: '{{ dc_name }}'
+        path: "CN=Servers,CN=Default-First-Site-Name,CN=Sites,CN=Configuration,{{ domain_dn }}"
+        state: absent
+
+    - name: Reboot primary DC to apply changes
+      ansible.windows.win_reboot:
